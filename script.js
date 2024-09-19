@@ -1,7 +1,7 @@
 const Gameboard = (function(){
  
     // here lays the board, a matrix of [3][3]
-    const gameboard = [];
+    let gameboard = [];
 
     const rows = 3;
     const columns = 3;
@@ -10,13 +10,22 @@ const Gameboard = (function(){
     // Cell has two methods:
     //      1. getMark() - to see curent value 
     //      2. addMark(mark) - change the value of the mark
-    for (let i = 0; i < rows; i++)
-    {
-        gameboard[i] = [];
-        for (let j = 0; j < columns; j++)
+
+    const resetBoard = () => {
+        gameboard = [];
+        createBoard();
+    }
+    
+    const createBoard = () => {
+        for (let i = 0; i < rows; i++)
         {
-            gameboard[i].push(Cell());
+            gameboard[i] = [];
+            for (let j = 0; j < columns; j++)
+            {
+                gameboard[i].push(Cell());
+            }
         }
+        
     }
 
     // get current state of gameboard
@@ -41,12 +50,14 @@ const Gameboard = (function(){
     const printBoard = () => {
         console.log(getBoardWithMarks());
     }
+    createBoard();
 
     return {
         printBoard,
         mark,
         getBoard,
-        getBoardWithMarks
+        getBoardWithMarks,
+        resetBoard
     };
 })();
 
@@ -106,22 +117,34 @@ const game = (function GameController(
         // check current row
         if (boardWithMarks[row][0] === mark && boardWithMarks[row][1] === mark && boardWithMarks[row][2] === mark)
         {
+            if (mark === "O"){
+                switchPlayerTurn();
+            }
             return "win";
         }
 
         // check current column 
         if (boardWithMarks[0][column] === mark && boardWithMarks[1][column] === mark && boardWithMarks[2][column] === mark)
         {
+            if (mark === "O"){
+                switchPlayerTurn();
+            }
             return "win";
         }
 
         // check main diagonal
         if (boardWithMarks[0][0] === mark && boardWithMarks[1][1] === mark && boardWithMarks[2][2] === mark) {
+            if (mark === "O"){
+                switchPlayerTurn();
+            }
             return "win";
         }
 
         // check second diagonal
         if(boardWithMarks[2][0] === mark && boardWithMarks[1][1] === mark && boardWithMarks[0][2] === mark) {
+            if (mark === "O"){
+                switchPlayerTurn();
+            }
             return "win";
         }
 
@@ -132,27 +155,30 @@ const game = (function GameController(
                    if (boardWithMarks[i][j] == 0){
                     return true;
                    }
+
                 }
             }
+            return false;
         }
         if (!checkFor0())
         {
+            if (mark === "O"){
+                switchPlayerTurn();
+            }
             return "draw";
         }
     }
 
     const playRound = (row, column) => {
-        console.log(`Putting ${getActivePlayer().name}'s mark on spot ${row} ${column}`);
         if (Gameboard.mark(getActivePlayer().token, row, column) === 'false'){
-            console.log("Failed");
             return
         }
         let condition = checkForWinOrDraw(row,column);
         if (condition === "win")
         {
-            console.log("win");
+            return "win";
         } else if (condition === "draw"){
-            console.log("draw");
+            return "draw";
         }
         switchPlayerTurn();
         printNewRound();
@@ -168,11 +194,11 @@ const game = (function GameController(
 const ScreenControler = (function(){
     const playerTurn = document.querySelector('.newRound');
     const boardDiv = document.querySelector('.board');
+    const resetButton = document.querySelector('.reset');
 
     const updateScreen = () => {
         // clear board
         boardDiv.textContent = "";
-        console.log("I'm getting called");
         // get board and active player
         const board = Gameboard.getBoard();
         const activePlayer = game.getActivePlayer();
@@ -190,17 +216,52 @@ const ScreenControler = (function(){
                 if (board[i][j].getMark() !== 0){
                 cellButton.textContent = board[i][j].getMark();
             } else {
+                // if there isnt any mark on the cell keep the cell empty
                 cellButton.textContent = "";
             }
                 cellButton.addEventListener("click", () => {
-                    game.playRound(i,j);
-                    updateScreen();
+                    let state = game.playRound(i,j);
+                    if (state === "win") {
+                        cellButton.textContent = board[i][j].getMark();
+                        displayWinDraw("win", activePlayer);
+                    } else if (state === "draw") {
+                        cellButton.textContent = board[i][j].getMark();
+                        displayWinDraw("draw", activePlayer);
+                    } else {
+                        updateScreen();
+                    }
             })
                 boardDiv.appendChild(cellButton);
+            }
+
         }
 
     }
 
-}
+    // verifies if win or draw
+    const displayWinDraw = (state, activePlayer) => {
+        if (state === "win") {
+            playerTurn.textContent = `${activePlayer.name} WON`;
+        } else {
+            playerTurn.textContent = "DRAW";
+        }
+
+        // creates a reset buton for the display
+        resetButton.classList.add("toggle");
+        resetButton.textContent = "Reset";
+
+        // event listener for the reset button
+        resetButton.addEventListener('click' , () => {
+            // clears the current board and creates a new one
+            Gameboard.resetBoard();
+
+            // remove the button from the display
+            resetButton.classList.remove("toggle");
+            resetButton.textContent = "";
+
+            updateScreen();
+        })
+    }
+
     updateScreen(); 
 })();
